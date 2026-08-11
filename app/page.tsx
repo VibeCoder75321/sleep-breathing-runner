@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 type TestType = "hsat" | "psg" | "unknown" | null;
+type SymptomStatus = "yes" | "no" | null;
 type ScoringRule = "3a" | "4" | "both" | "unknown" | null;
 type ResultBand = "atLeast5" | "below5" | "unknown" | null;
 type RdiStatus = "atLeast5" | "below5Scored" | "blankZero" | "unknown" | null;
@@ -41,9 +42,9 @@ const SOURCES: Record<SourceKey, Source> = {
     publication: "AASM clinical practice guideline",
     year: "2017",
     excerpt:
-      "If a single home sleep apnea test is negative … polysomnography be performed.",
+      "We recommend that if a single home sleep apnea test is negative, inconclusive, or technically inadequate, polysomnography be performed for the diagnosis of OSA.",
     relevance:
-      "Directly supports moving to an attended PSG after a negative, inconclusive, or inadequate HSAT.",
+      "Recommendation 3 is rated STRONG and directly supports moving to an attended PSG rather than repeating the HSAT.",
   },
   diagnosticRepeat: {
     href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5337595/",
@@ -205,7 +206,7 @@ function AnswerCard({
   tone?: "warning" | "good" | "neutral";
   eyebrow: string;
   title: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   reply: string;
   sources: SourceKey[];
 }) {
@@ -239,8 +240,7 @@ function RdiQuestion({
 }) {
   return (
     <QuestionCard
-      help="Use the RDI only if the report defines it as apneas + hypopneas + RERAs per hour of sleep."
-      number={4}
+      number={5}
       title="What does the report say about RDI and RERAs?"
     >
       <ChoiceButton
@@ -250,26 +250,20 @@ function RdiQuestion({
       />
       <ChoiceButton
         active={value === "below5Scored"}
-        label="RDI is <5; RERAs were scored"
+        label="RDI <5 and RERAs were scored"
         onClick={() => onChange("below5Scored")}
       />
       <ChoiceButton
         active={value === "blankZero"}
-        description="Includes RDI equal to AHI when the report does not confirm RERA scoring."
-        label="RERAs are blank or 0, but scoring is unclear"
+        label="RDI <5 and RERAs are blank or 0"
         onClick={() => onChange("blankZero")}
-      />
-      <ChoiceButton
-        active={value === "unknown"}
-        description="No RDI/RERA result, no definition, or I do not have the full report."
-        label="Not reported / I don’t know"
-        onClick={() => onChange("unknown")}
       />
     </QuestionCard>
   );
 }
 
 export default function Home() {
+  const [symptomStatus, setSymptomStatus] = useState<SymptomStatus>(null);
   const [testType, setTestType] = useState<TestType>(null);
   const [scoringRule, setScoringRule] = useState<ScoringRule>(null);
   const [hsatResult, setHsatResult] = useState<ResultBand>(null);
@@ -284,6 +278,11 @@ export default function Home() {
     setRdiStatus(null);
   }
 
+  function chooseSymptoms(value: SymptomStatus) {
+    setSymptomStatus(value);
+    chooseTest(null);
+  }
+
   function chooseScoring(value: ScoringRule) {
     setScoringRule(value);
     setPsgResult(null);
@@ -296,6 +295,7 @@ export default function Home() {
   }
 
   function reset() {
+    setSymptomStatus(null);
     chooseTest(null);
   }
 
@@ -311,36 +311,70 @@ export default function Home() {
           <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <span><strong>Sleep Study Check</strong><small>A simple report guide</small></span>
         </button>
-        {testType ? (
+        {symptomStatus ? (
           <button className="start-over" onClick={reset} type="button">Start over</button>
         ) : null}
       </header>
 
       <div className="page-shell">
         <section className="intro">
-          <p className="kicker">Start with the report—not the summary</p>
+          <p className="kicker">Patient Advocacy Tool</p>
           <h1>A sleep test said<br /><em>“no apnea.”</em></h1>
           <p className="lede">
             Check that the test conclusively rules out sleep breathing disorders.
           </p>
         </section>
 
-        <QuestionCard number={1} title="Was it a home test or an in-lab sleep study?">
+        <QuestionCard
+          help="Examples include unrefreshing sleep, daytime sleepiness, fatigue, insomnia, waking with gasping or choking, loud snoring, or witnessed breathing pauses."
+          number={1}
+          title="Are symptoms still affecting you despite the sleep test?"
+        >
           <ChoiceButton
-            active={testType === "hsat"}
-            label="Home sleep apnea test (HSAT)"
-            onClick={() => chooseTest("hsat")}
+            active={symptomStatus === "yes"}
+            label="Yes — symptoms are still present"
+            onClick={() => chooseSymptoms("yes")}
           />
           <ChoiceButton
-            active={testType === "psg"}
-            label="In-lab polysomnogram (PSG)"
-            onClick={() => chooseTest("psg")}
+            active={symptomStatus === "no"}
+            label="No"
+            onClick={() => chooseSymptoms("no")}
           />
         </QuestionCard>
 
+        {symptomStatus ? (
+          <section className="context-note" aria-live="polite">
+            <strong>
+              {symptomStatus === "yes"
+                ? "Persistent symptoms are important, but they do not identify the cause by themselves."
+                : "No important symptoms remain."}
+            </strong>
+            <span>
+              {symptomStatus === "yes"
+                ? "Next, check what the sleep test actually measured."
+                : "You can still review the report; follow-up testing depends on the report and clinical context."}
+            </span>
+          </section>
+        ) : null}
+
+        {symptomStatus ? (
+          <QuestionCard number={2} title="Was it a home test or an in-lab sleep study?">
+            <ChoiceButton
+              active={testType === "hsat"}
+              label="Home sleep apnea test (HSAT)"
+              onClick={() => chooseTest("hsat")}
+            />
+            <ChoiceButton
+              active={testType === "psg"}
+              label="In-lab polysomnogram (PSG)"
+              onClick={() => chooseTest("psg")}
+            />
+          </QuestionCard>
+        ) : null}
+
         {testType === "hsat" ? (
           <QuestionCard
-            number={2}
+            number={3}
             title="What was the AHI or REI?"
           >
             <ChoiceButton
@@ -371,26 +405,32 @@ export default function Home() {
             tone="good"
           >
             <p>
-              In an adult with relevant symptoms, a technically adequate HSAT with
-              predominantly obstructive events supports OSA. A home test can still
-              underestimate severity because it usually does not measure EEG arousals or
-              true sleep time.
+              A home test can still underestimate severity because it usually does not
+              measure EEG arousals or true sleep time.
             </p>
           </AnswerCard>
         ) : null}
 
         {testType === "hsat" && hsatResult === "below5" ? (
           <AnswerCard
-            eyebrow="Negative HSAT"
-            reply="The home test was <5, but a negative HSAT does not reliably rule out OSA when symptoms persist. AASM recommends an attended PSG after a single negative, inconclusive, or inadequate HSAT when OSA is still suspected. A next step would be to request an attended PSG scored using the AASM recommended 1A scoring criteria."
+            eyebrow="Strong AASM recommendation"
+            reply="Ask the ordering clinician for an attended PSG rather than another HSAT. Ask whether the PSG can report the AHI using AASM recommended 1A scoring criteria."
             sources={["diagnosticNegative", "hsatUnderestimate", "aasm1a"]}
-            title="This does not reliably rule out OSA."
+            title="An attended PSG should be performed."
           >
             <p>
-              HSAT is mainly used in selected adults at higher risk for
-              moderate-to-severe OSA. It can underestimate milder or arousal-based
-              disease.
+              A negative HSAT does not reliably rule out OSA. After a single negative,
+              inconclusive, or technically inadequate HSAT, repeating the HSAT is
+              generally not recommended because PSG is more sensitive.
             </p>
+            <blockquote className="guideline-quote">
+              <p>
+                “We recommend that if a single home sleep apnea test is negative,
+                inconclusive, or technically inadequate, polysomnography be performed
+                for the diagnosis of OSA.”
+              </p>
+              <cite>AASM Clinical Practice Guideline, Recommendation 3 (STRONG)</cite>
+            </blockquote>
           </AnswerCard>
         ) : null}
 
@@ -413,7 +453,7 @@ export default function Home() {
         {testType === "psg" ? (
           <QuestionCard
             help="Scan the report for 3% or 4% oxygen desaturation, AASM 1A or 1B, CMS, or Medicare."
-            number={2}
+            number={3}
             title="Does your test state the scoring guidelines?"
           >
             <ChoiceButton
@@ -448,7 +488,7 @@ export default function Home() {
                 ? "Use the AHI next to 3%, arousal, AASM 1A, or recommended."
                 : undefined
             }
-            number={3}
+            number={4}
             title={
               scoringRule === "4"
                 ? "What was the 4% AHI?"
@@ -572,33 +612,26 @@ export default function Home() {
         {lowPsg && rdiStatus === "below5Scored" && usesAasm1A ? (
           <AnswerCard
             eyebrow="OSA not demonstrated"
-            reply="The PSG used the AASM recommended 1A scoring criteria, explicitly scored RERAs, and both AHI and RDI were <5. That study did not establish OSA on that night. If symptoms persist, review study quality, sleep time, REM and supine sleep, other possible causes, and whether repeat PSG or specialist review is appropriate. Esophageal pressure monitoring is an optional, more sensitive specialist technique that may identify subtle effort-related events associated with the pattern historically called UARS."
+            reply="Review non-respiratory causes of poor sleep. If suspicion of SBD remains, a repeat PSG or PSG with Esophageal pressure monitoring (Pes) may be appropriate. Esophageal pressure monitoring (Pes) is an optional, more sensitive specialist technique that may identify subtle effort-related events associated with the pattern historically called UARS."
             sources={["diagnosticRepeat", "arousalRdi"]}
             title="This PSG did not establish OSA on that night."
             tone="neutral"
-          >
-            <p>
-              Review technical quality, total sleep time, REM and supine sleep, and
-              non-respiratory causes of poor sleep. If suspicion remains, a repeat PSG or
-              specialist review may be appropriate. Esophageal pressure monitoring is an
-              optional, more sensitive specialist technique that may identify subtle
-              effort-related events associated with the pattern historically called UARS.
-            </p>
-          </AnswerCard>
+          />
         ) : null}
 
         {lowPsg && rdiStatus === "below5Scored" && scoringRule === "4" ? (
           <AnswerCard
-            eyebrow="AASM 1A result not reported"
-            reply="If symptoms or clinical suspicion persist, ask whether an AHI using AASM recommended 1A scoring was also calculated or whether rescoring would be useful."
+            eyebrow="4% AHI and RDI are below 5"
+            reply="Ask whether the existing PSG can be rescored using the AASM recommended 1A scoring criteria, or whether a separately calculated 1A AHI is available."
             sources={["aasm1a", "ethics", "scoringImpact"]}
-            title="The report does not show the AHI using AASM recommended 1A scoring."
+            title="This result does not rule out OSA using AASM 1A scoring."
           >
             <p>
-              The AHI was calculated using the 4% rule. Even though RERAs were scored and
-              the RDI was &lt;5, this does not show what the AHI would be under AASM
-              recommended 1A scoring. In particular, hypopneas associated with a 3%
-              oxygen drop may not be included.
+              RERAs were scored, which adds useful information to the RDI. However, a
+              4%-based RDI is not the same as an AHI calculated using AASM recommended 1A
+              scoring. The 1A rule can count additional hypopneas associated with a 3%
+              oxygen drop or an arousal. For more information, review &quot;The Ethics of
+              Hypopnea Scoring&quot; in the AASM Sources and supporting studies list.
             </p>
           </AnswerCard>
         ) : null}

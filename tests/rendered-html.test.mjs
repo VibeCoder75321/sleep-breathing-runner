@@ -28,7 +28,9 @@ test("renders the updated sleep study checker", async () => {
   );
   const html = await response.text();
   assert.match(html, /A sleep test said/i);
-  assert.match(html, /Was it a home test or an in-lab sleep study/i);
+  assert.match(html, /Patient Advocacy Tool/i);
+  assert.match(html, /Are symptoms still affecting you despite the sleep test/i);
+  assert.doesNotMatch(html, /I’m not sure/i);
   assert.match(html, /Sleep Study Check/i);
   assert.match(html, /Check that the test conclusively rules out sleep breathing disorders/i);
   assert.doesNotMatch(html, /typically reports REI or AHI/i);
