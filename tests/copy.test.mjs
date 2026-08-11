@@ -82,7 +82,8 @@ test("shows category-specific sources with short supporting excerpts", () => {
 test("uses concise positive next steps and the current PSG scoring labels", () => {
   assert.match(pageSource, /Review treatment options with your clinician\./);
   assert.match(pageSource, /Does your test state the scoring guidelines\?/);
-  assert.match(pageSource, /I see AHI 3%, hypopnea or arousal criteria, or recommended AASM 1A\./);
+  assert.match(pageSource, /I see AHI 3% or recommended AASM 1A\./);
+  assert.doesNotMatch(pageSource, /I see AHI 3%, hypopnea or arousal criteria/);
   assert.match(pageSource, /I see AHI 4%, CMS, Medicare or optional AASM 1B\./);
   assert.match(pageSource, /The report lists both/);
   assert.match(pageSource, /Scan the report for 3% or 4% oxygen desaturation, AASM 1A or 1B, CMS, or Medicare\./);
@@ -92,43 +93,45 @@ test("uses concise positive next steps and the current PSG scoring labels", () =
 test("keeps AASM 1A separate from optional RERA scoring", () => {
   assert.match(
     pageSource,
-    /AASM 1A hypopnea scoring does not guarantee that RERAs were scored\./,
+    /AASM\s+scoring materials describe RERA scoring as optional/,
   );
-  assert.match(pageSource, /Esophageal pressure monitoring \(Pes\) is an/);
-  assert.match(pageSource, /pattern historically called UARS/);
+  assert.match(
+    pageSource,
+    /A RERA value of 0 or a blank field does not reveal whether the laboratory/,
+  );
+  assert.doesNotMatch(pageSource, /Esophageal pressure/i);
+  assert.doesNotMatch(pageSource, /\bPes\b/);
 });
 
-test("uses the revised RDI choices and concise negative-PSG next step", () => {
+test("uses the revised RDI choices and four negative-PSG result paths", () => {
   assert.match(pageSource, /label="RDI <5 and RERAs were scored"/);
-  assert.match(pageSource, /label="RDI <5 and RERAs are blank or 0"/);
+  assert.match(pageSource, /label="RDI <5 and RERAs are 0, blank, or not reported"/);
   assert.doesNotMatch(
     pageSource,
     /Use the RDI only if the report defines it as apneas \+ hypopneas \+ RERAs per hour of sleep\./,
   );
   assert.doesNotMatch(pageSource, /Includes RDI equal to AHI/);
   assert.doesNotMatch(pageSource, /label="Not reported \/ I don’t know"/);
-  assert.match(
-    pageSource,
-    /Review non-respiratory causes of poor sleep\. If suspicion of SBD remains, a repeat PSG or PSG with Esophageal pressure monitoring \(Pes\) may be appropriate\./,
-  );
-  assert.doesNotMatch(
-    pageSource,
-    /Review technical quality, total sleep time, REM and supine sleep, and\s+non-respiratory causes of poor sleep\./,
-  );
+  assert.match(pageSource, /AASM 1A · AHI and RDI <5 · RERAs scored/);
+  assert.match(pageSource, /AASM 1A · AHI\/RDI <5 · RERAs 0 or not reported/);
+  assert.match(pageSource, /AASM 1B \/ 4% · AHI and RDI <5 · RERAs scored/);
+  assert.match(pageSource, /AASM 1B \/ 4% · AHI\/RDI <5 · RERAs 0 or not reported/);
+  assert.match(pageSource, /persistent inspiratory flow limitation/);
+  assert.match(pageSource, /respiratoryLegMovements/);
+  assert.match(pageSource, /reraScoring/);
 });
 
 test("uses qualified guidance when only the 4% AHI is available", () => {
-  assert.match(pageSource, /4% AHI and RDI are below 5/);
+  assert.match(pageSource, /AASM 1B \/ 4% · AHI and RDI <5 · RERAs scored/);
   assert.match(
     pageSource,
     /This result does not rule out OSA using AASM 1A scoring\./,
   );
   assert.match(
     pageSource,
-    /Ask whether the existing PSG can be rescored using the AASM recommended 1A scoring criteria, or whether a separately calculated 1A AHI is available\./,
+    /Ask whether the existing PSG can be rescored using AASM recommended 1A criteria or whether a separate 1A AHI can be calculated from the recording\./,
   );
-  assert.match(pageSource, /4%-based RDI is not the same as an AHI calculated using AASM recommended 1A/);
-  assert.match(pageSource, /For more information, review &quot;The Ethics of\s+Hypopnea Scoring&quot;/);
+  assert.match(pageSource, /3% oxygen drop but no arousal can count under 1A/);
   assert.doesNotMatch(pageSource, /AASM 1A result not reported/);
   assert.doesNotMatch(pageSource, /Recommended scoring still missing/);
 });
