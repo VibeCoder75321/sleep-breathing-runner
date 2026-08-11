@@ -103,19 +103,45 @@ test("keeps AASM 1A separate from optional RERA scoring", () => {
   assert.doesNotMatch(pageSource, /\bPes\b/);
 });
 
-test("uses the revised RDI choices and four negative-PSG result paths", () => {
-  assert.match(pageSource, /label="RDI <5 and RERAs were scored"/);
-  assert.match(pageSource, /label="RDI <5 and RERAs are 0, blank, or not reported"/);
+test("asks the user to copy the visible RERA result before asking for RDI", () => {
+  assert.match(pageSource, /What do you see next to “RERA” on the report\?/);
+  assert.match(
+    pageSource,
+    /Look in the respiratory-events table\. Do not use the RDI number for this question\./,
+  );
+  assert.match(pageSource, /label="A number greater than 0"/);
+  assert.match(pageSource, /For example, RERA 6 or RERA index 1\.2\./);
+  assert.match(pageSource, /label="0 or a blank space"/);
+  assert.match(pageSource, /Choose this even if the RDI is the same as the AHI\./);
+  assert.match(pageSource, /label="I can’t find “RERA”"/);
+  assert.match(pageSource, /Now find the RDI\. What number is shown\?/);
+  assert.match(pageSource, /label="Not listed \/ I can’t find it"/);
+  assert.match(pageSource, /reraFinding === "positive" \? \(/);
+  assert.doesNotMatch(pageSource, /label="RDI <5 and RERAs were scored"/);
+  assert.doesNotMatch(pageSource, /label="RDI <5 and RERAs are 0, blank, or not reported"/);
   assert.doesNotMatch(
     pageSource,
     /Use the RDI only if the report defines it as apneas \+ hypopneas \+ RERAs per hour of sleep\./,
   );
   assert.doesNotMatch(pageSource, /Includes RDI equal to AHI/);
   assert.doesNotMatch(pageSource, /label="Not reported \/ I don’t know"/);
+});
+
+test("keeps distinct 3% and 4% results after the simplified RERA step", () => {
   assert.match(pageSource, /AASM 1A · AHI and RDI <5 · RERAs scored/);
-  assert.match(pageSource, /AASM 1A · AHI\/RDI <5 · RERAs 0 or not reported/);
   assert.match(pageSource, /AASM 1B \/ 4% · AHI and RDI <5 · RERAs scored/);
-  assert.match(pageSource, /AASM 1B \/ 4% · AHI\/RDI <5 · RERAs 0 or not reported/);
+  assert.match(pageSource, /AASM 1A · AHI <5 · RERA result unclear/);
+  assert.match(pageSource, /AASM 1B \/ 4% · AHI <5 · RERA result unclear/);
+  assert.match(pageSource, /A zero or blank RERA result is not enough information\./);
+  assert.match(pageSource, /RERA scoring cannot be confirmed from this report\./);
+  assert.match(
+    pageSource,
+    /reraFinding === "positive" && rdiResult === "below5" && usesAasm1A/,
+  );
+  assert.match(
+    pageSource,
+    /reraFinding === "positive" && rdiResult === "below5" && scoringRule === "4"/,
+  );
   assert.match(pageSource, /persistent inspiratory flow limitation/);
   assert.match(pageSource, /respiratoryLegMovements/);
   assert.match(pageSource, /reraScoring/);

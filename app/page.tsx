@@ -6,7 +6,7 @@ type TestType = "hsat" | "psg" | "unknown" | null;
 type SymptomStatus = "yes" | "no" | null;
 type ScoringRule = "3a" | "4" | "both" | "unknown" | null;
 type ResultBand = "atLeast5" | "below5" | "unknown" | null;
-type RdiStatus = "atLeast5" | "below5Scored" | "blankZero" | null;
+type ReraFinding = "positive" | "zeroBlank" | "missing" | null;
 type SourceKey =
   | "diagnosticUse"
   | "diagnosticNegative"
@@ -253,32 +253,64 @@ function AnswerCard({
   );
 }
 
+function ReraQuestion({
+  value,
+  onChange,
+}: {
+  value: ReraFinding;
+  onChange: (value: ReraFinding) => void;
+}) {
+  return (
+    <QuestionCard
+      help="Look in the respiratory-events table. Do not use the RDI number for this question."
+      number={5}
+      title="What do you see next to “RERA” on the report?"
+    >
+      <ChoiceButton
+        active={value === "positive"}
+        description="For example, RERA 6 or RERA index 1.2."
+        label="A number greater than 0"
+        onClick={() => onChange("positive")}
+      />
+      <ChoiceButton
+        active={value === "zeroBlank"}
+        description="Choose this even if the RDI is the same as the AHI."
+        label="0 or a blank space"
+        onClick={() => onChange("zeroBlank")}
+      />
+      <ChoiceButton
+        active={value === "missing"}
+        description="The report may not include a RERA line."
+        label="I can’t find “RERA”"
+        onClick={() => onChange("missing")}
+      />
+    </QuestionCard>
+  );
+}
+
 function RdiQuestion({
   value,
   onChange,
 }: {
-  value: RdiStatus;
-  onChange: (value: RdiStatus) => void;
+  value: ResultBand;
+  onChange: (value: ResultBand) => void;
 }) {
   return (
-    <QuestionCard
-      number={5}
-      title="What does the report say about RDI and RERAs?"
-    >
+    <QuestionCard number={6} title="Now find the RDI. What number is shown?">
       <ChoiceButton
         active={value === "atLeast5"}
-        label="RDI is ≥5"
+        label="≥5"
         onClick={() => onChange("atLeast5")}
       />
       <ChoiceButton
-        active={value === "below5Scored"}
-        label="RDI <5 and RERAs were scored"
-        onClick={() => onChange("below5Scored")}
+        active={value === "below5"}
+        label="<5"
+        onClick={() => onChange("below5")}
       />
       <ChoiceButton
-        active={value === "blankZero"}
-        label="RDI <5 and RERAs are 0, blank, or not reported"
-        onClick={() => onChange("blankZero")}
+        active={value === "unknown"}
+        label="Not listed / I can’t find it"
+        onClick={() => onChange("unknown")}
       />
     </QuestionCard>
   );
@@ -290,14 +322,16 @@ export default function Home() {
   const [scoringRule, setScoringRule] = useState<ScoringRule>(null);
   const [hsatResult, setHsatResult] = useState<ResultBand>(null);
   const [psgResult, setPsgResult] = useState<ResultBand>(null);
-  const [rdiStatus, setRdiStatus] = useState<RdiStatus>(null);
+  const [reraFinding, setReraFinding] = useState<ReraFinding>(null);
+  const [rdiResult, setRdiResult] = useState<ResultBand>(null);
 
   function chooseTest(value: TestType) {
     setTestType(value);
     setScoringRule(null);
     setHsatResult(null);
     setPsgResult(null);
-    setRdiStatus(null);
+    setReraFinding(null);
+    setRdiResult(null);
   }
 
   function chooseSymptoms(value: SymptomStatus) {
@@ -308,12 +342,19 @@ export default function Home() {
   function chooseScoring(value: ScoringRule) {
     setScoringRule(value);
     setPsgResult(null);
-    setRdiStatus(null);
+    setReraFinding(null);
+    setRdiResult(null);
   }
 
   function choosePsgResult(value: ResultBand) {
     setPsgResult(value);
-    setRdiStatus(null);
+    setReraFinding(null);
+    setRdiResult(null);
+  }
+
+  function chooseReraFinding(value: ReraFinding) {
+    setReraFinding(value);
+    setRdiResult(null);
   }
 
   function reset() {
@@ -325,6 +366,8 @@ export default function Home() {
     scoringRule === "3a" || scoringRule === "4" || scoringRule === "both";
   const lowPsg = testType === "psg" && hasKnownScoring && psgResult === "below5";
   const usesAasm1A = scoringRule === "3a" || scoringRule === "both";
+  const reraFindingIsUnclear =
+    reraFinding === "zeroBlank" || reraFinding === "missing";
 
   return (
     <main>
@@ -608,13 +651,16 @@ export default function Home() {
                     ? "An AHI <5 using AASM recommended 1A scoring criteria did not establish OSA by AHI alone."
                     : "An AHI <5 is not enough to interpret this PSG without the scoring rule."}
               </strong>
-              <span>Next, check whether RERAs were actually scored and what the RDI includes.</span>
+              <span>Next, find “RERA” in the respiratory-events table.</span>
             </section>
-            <RdiQuestion value={rdiStatus} onChange={setRdiStatus} />
+            <ReraQuestion value={reraFinding} onChange={chooseReraFinding} />
+            {reraFinding === "positive" ? (
+              <RdiQuestion value={rdiResult} onChange={setRdiResult} />
+            ) : null}
           </>
         ) : null}
 
-        {lowPsg && rdiStatus === "atLeast5" ? (
+        {lowPsg && reraFinding === "positive" && rdiResult === "atLeast5" ? (
           <AnswerCard
             eyebrow="RERA-inclusive OSA"
             reply="Review treatment options with your clinician."
@@ -629,7 +675,23 @@ export default function Home() {
           </AnswerCard>
         ) : null}
 
-        {lowPsg && rdiStatus === "below5Scored" && usesAasm1A ? (
+        {lowPsg && reraFinding === "positive" && rdiResult === "unknown" ? (
+          <AnswerCard
+            eyebrow="RDI needed"
+            reply="Ask for the complete PSG report or ask the sleep lab what RDI was reported and whether it includes apneas, hypopneas, and RERAs per hour of sleep."
+            sources={["arousalRdi"]}
+            title="Find the RDI before interpreting this result."
+            tone="neutral"
+          >
+            <p>
+              A RERA number greater than 0 shows that at least one RERA was reported,
+              but the RDI is needed to see the combined rate of apneas, hypopneas, and
+              RERAs.
+            </p>
+          </AnswerCard>
+        ) : null}
+
+        {lowPsg && reraFinding === "positive" && rdiResult === "below5" && usesAasm1A ? (
           <AnswerCard
             eyebrow="AASM 1A · AHI and RDI <5 · RERAs scored"
             reply="Because symptoms are still present, discuss the result with the sleep physician. Ask whether the raw study showed persistent inspiratory flow limitation, whether unexplained arousals or leg movements appeared related to breathing, and whether another cause of the symptoms should be evaluated. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
@@ -663,7 +725,7 @@ export default function Home() {
           </AnswerCard>
         ) : null}
 
-        {lowPsg && rdiStatus === "below5Scored" && scoringRule === "4" ? (
+        {lowPsg && reraFinding === "positive" && rdiResult === "below5" && scoringRule === "4" ? (
           <AnswerCard
             eyebrow="AASM 1B / 4% · AHI and RDI <5 · RERAs scored"
             reply="Ask whether the existing PSG can be rescored using AASM recommended 1A criteria or whether a separate 1A AHI can be calculated from the recording. If the study remains negative and clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
@@ -703,10 +765,14 @@ export default function Home() {
           </AnswerCard>
         ) : null}
 
-        {lowPsg && rdiStatus === "blankZero" && usesAasm1A ? (
+        {lowPsg && reraFindingIsUnclear && usesAasm1A ? (
           <AnswerCard
-            eyebrow="AASM 1A · AHI/RDI <5 · RERAs 0 or not reported"
-            reply="Ask whether RERAs were actually scored, what events were included in the reported RDI, and whether the raw study showed persistent inspiratory flow limitation. If the PSG remains negative but clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
+            eyebrow="AASM 1A · AHI <5 · RERA result unclear"
+            reply={
+              reraFinding === "zeroBlank"
+                ? "Ask the sleep lab whether RERAs were actively scored and whether the reported RDI includes apneas, hypopneas, and RERAs. Also ask whether the raw study showed persistent inspiratory flow limitation. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
+                : "Ask the sleep lab whether RERAs were scored and whether an RDI that includes apneas, hypopneas, and RERAs is available. Also ask whether the raw study showed persistent inspiratory flow limitation. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
+            }
             sources={[
               "aasm1a",
               "arousalRdi",
@@ -714,7 +780,11 @@ export default function Home() {
               "diagnosticRepeat",
               "respiratoryLegMovements",
             ]}
-            title="The report does not clearly show whether RERAs were evaluated."
+            title={
+              reraFinding === "zeroBlank"
+                ? "A zero or blank RERA result is not enough information."
+                : "RERA scoring cannot be confirmed from this report."
+            }
           >
             <p>
               The result is below the usual OSA threshold using AASM recommended 1A
@@ -728,12 +798,19 @@ export default function Home() {
               that ends in an arousal but does not meet apnea or hypopnea criteria. These
               events can be added to apneas and hypopneas when calculating the RDI.
             </p>
-            <p>
-              A RERA value of 0 or a blank field does not reveal whether the laboratory
-              carefully evaluated RERAs and found none or did not score them. AASM
-              scoring materials describe RERA scoring as optional, so the report should
-              be checked before assuming that 0 means none were found.
-            </p>
+            {reraFinding === "zeroBlank" ? (
+              <p>
+                A RERA value of 0 or a blank field does not reveal whether the laboratory
+                carefully evaluated RERAs and found none or did not score them. AASM
+                scoring materials describe RERA scoring as optional, so the report should
+                be checked before assuming that 0 means none were found.
+              </p>
+            ) : (
+              <p>
+                Because no RERA line could be found, the report does not confirm whether
+                the laboratory scored RERAs or included them in an RDI.
+              </p>
+            )}
             <p>
               Unexplained or “spontaneous” arousals do not establish that respiratory
               events were missed. Periodic limb movements may be a separate source of
@@ -743,10 +820,14 @@ export default function Home() {
           </AnswerCard>
         ) : null}
 
-        {lowPsg && rdiStatus === "blankZero" && scoringRule === "4" ? (
+        {lowPsg && reraFindingIsUnclear && scoringRule === "4" ? (
           <AnswerCard
-            eyebrow="AASM 1B / 4% · AHI/RDI <5 · RERAs 0 or not reported"
-            reply="First ask whether RERAs were actually scored and what the reported RDI includes. Then ask whether the existing PSG can be rescored using AASM recommended 1A criteria, with a separate 1A AHI reported. If the PSG remains negative but clinical suspicion for OSA persists, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
+            eyebrow="AASM 1B / 4% · AHI <5 · RERA result unclear"
+            reply={
+              reraFinding === "zeroBlank"
+                ? "First ask the sleep lab whether RERAs were actively scored and what the reported RDI includes. Then ask whether the PSG can be rescored using AASM recommended 1A criteria, with a separate 1A AHI reported. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
+                : "First ask the sleep lab whether RERAs were scored and whether a RERA-inclusive RDI is available. Then ask whether the PSG can be rescored using AASM recommended 1A criteria, with a separate 1A AHI reported. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
+            }
             sources={[
               "aasm1a",
               "arousalRdi",
@@ -756,7 +837,11 @@ export default function Home() {
               "scoringImpact",
               "respiratoryLegMovements",
             ]}
-            title="This result does not rule out OSA using AASM 1A scoring."
+            title={
+              reraFinding === "zeroBlank"
+                ? "A zero or blank RERA result is not enough information."
+                : "RERA scoring cannot be confirmed from this report."
+            }
           >
             <p>
               The study used the 4% hypopnea rule, and the report does not clearly show
@@ -769,12 +854,20 @@ export default function Home() {
               that ends in an arousal but does not meet apnea or hypopnea criteria. RERAs
               can be added to apneas and hypopneas when calculating the RDI.
             </p>
-            <p>
-              A RERA value of 0 or a blank field does not reveal whether the laboratory
-              carefully evaluated RERAs and found none or did not score them. This matters
-              especially under the 4% rule because respiratory events that cause an
-              arousal without a 4% oxygen drop will not qualify as 4% hypopneas.
-            </p>
+            {reraFinding === "zeroBlank" ? (
+              <p>
+                A RERA value of 0 or a blank field does not reveal whether the laboratory
+                carefully evaluated RERAs and found none or did not score them. This matters
+                especially under the 4% rule because respiratory events that cause an
+                arousal without a 4% oxygen drop will not qualify as 4% hypopneas.
+              </p>
+            ) : (
+              <p>
+                Because no RERA line could be found, the report does not confirm whether
+                the laboratory scored RERAs or included them in an RDI. This is especially
+                important when the AHI uses the 4% rule.
+              </p>
+            )}
             <p>
               Unexplained or “spontaneous” arousals do not prove that respiratory events
               were missed. Periodic limb movements may be a separate source of sleep
