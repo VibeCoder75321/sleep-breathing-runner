@@ -28,3 +28,10 @@ and rendered-HTML tests.
 
 The Next.js configuration creates a static export and automatically applies the
 repository base path when built by GitHub Actions.
+
+## Analytics
+
+The Pages workflow reads the GA4 Measurement ID from the
+`GA_MEASUREMENT_ID` repository variable. Google Analytics loads only after a
+visitor opts in. The site uses GA4's automatic page, session, and engagement
+measurement and does not send questionnaire selections or health-related values.
