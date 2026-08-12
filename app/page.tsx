@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type TestType = "hsat" | "psg" | "unknown" | null;
-type SymptomStatus = "yes" | "no" | null;
+type SymptomStatus = "yes" | "no" | "notTested" | null;
 type ScoringRule = "3a" | "4" | "both" | "unknown" | null;
 type ResultBand = "atLeast5" | "below5" | "unknown" | null;
 type ReraFinding = "positive" | "zeroBlank" | "missing" | null;
@@ -268,19 +268,16 @@ function ReraQuestion({
     >
       <ChoiceButton
         active={value === "positive"}
-        description="For example, RERA 6 or RERA index 1.2."
         label="A number greater than 0"
         onClick={() => onChange("positive")}
       />
       <ChoiceButton
         active={value === "zeroBlank"}
-        description="Choose this even if the RDI is the same as the AHI."
         label="0 or a blank space"
         onClick={() => onChange("zeroBlank")}
       />
       <ChoiceButton
         active={value === "missing"}
-        description="The report may not include a RERA line."
         label="I can’t find “RERA”"
         onClick={() => onChange("missing")}
       />
@@ -384,9 +381,11 @@ export default function Home() {
       <div className="page-shell">
         <section className="intro">
           <p className="kicker">Patient Advocacy Tool</p>
-          <h1>A sleep test said<br /><em>“no apnea.”</em></h1>
+          <h1>My sleep study said<br /><em>“no apnea.”</em></h1>
           <p className="lede">
-            Check that the test conclusively rules out sleep breathing disorders.
+            Check that the test conclusively rules out obstructive sleep breathing
+            disorders, based on current American Academy of Sleep Medicine clinical
+            guidelines.
           </p>
         </section>
 
@@ -405,24 +404,39 @@ export default function Home() {
             label="No"
             onClick={() => chooseSymptoms("no")}
           />
+          <ChoiceButton
+            active={symptomStatus === "notTested"}
+            label="I haven’t done my sleep study yet"
+            onClick={() => chooseSymptoms("notTested")}
+          />
         </QuestionCard>
 
-        {symptomStatus ? (
+        {symptomStatus === "notTested" ? (
+          <AnswerCard
+            eyebrow="Before your sleep study"
+            reply="Ask your doctor to explicitly order an in-lab PSG using AASM recommended 1A scoring (3% oxygen drop OR arousal), with RERAs and RDI scored and reported."
+            sources={["ethics"]}
+            title="Ask your doctor to explicitly order an in-lab sleep study."
+            tone="neutral"
+          >
+            <p>
+              The scoring rule can change which breathing events are counted, so the
+              requested method should be written into the order rather than assumed.
+            </p>
+          </AnswerCard>
+        ) : null}
+
+        {symptomStatus === "no" ? (
           <section className="context-note" aria-live="polite">
-            <strong>
-              {symptomStatus === "yes"
-                ? "Persistent symptoms are important, but they do not identify the cause by themselves."
-                : "No important symptoms remain."}
-            </strong>
+            <strong>No important symptoms remain.</strong>
             <span>
-              {symptomStatus === "yes"
-                ? "Next, check what the sleep test actually measured."
-                : "You can still review the report; follow-up testing depends on the report and clinical context."}
+              You can still review the report; follow-up testing depends on the report
+              and clinical context.
             </span>
           </section>
         ) : null}
 
-        {symptomStatus ? (
+        {symptomStatus === "yes" || symptomStatus === "no" ? (
           <QuestionCard number={2} title="Was it a home test or an in-lab sleep study?">
             <ChoiceButton
               active={testType === "hsat"}
@@ -643,16 +657,6 @@ export default function Home() {
 
         {lowPsg ? (
           <>
-            <section className="context-note" aria-live="polite">
-              <strong>
-                {scoringRule === "4"
-                  ? "A 4%-only AHI <5 does not rule out OSA under the AASM recommended 1A scoring criteria."
-                  : usesAasm1A
-                    ? "An AHI <5 using AASM recommended 1A scoring criteria did not establish OSA by AHI alone."
-                    : "An AHI <5 is not enough to interpret this PSG without the scoring rule."}
-              </strong>
-              <span>Next, find “RERA” in the respiratory-events table.</span>
-            </section>
             <ReraQuestion value={reraFinding} onChange={chooseReraFinding} />
             {reraFinding === "positive" ? (
               <RdiQuestion value={rdiResult} onChange={setRdiResult} />
@@ -693,42 +697,41 @@ export default function Home() {
 
         {lowPsg && reraFinding === "positive" && rdiResult === "below5" && usesAasm1A ? (
           <AnswerCard
-            eyebrow="AASM 1A · AHI and RDI <5 · RERAs scored"
-            reply="Because symptoms are still present, discuss the result with the sleep physician. Ask whether the raw study showed persistent inspiratory flow limitation, whether unexplained arousals or leg movements appeared related to breathing, and whether another cause of the symptoms should be evaluated. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
+            eyebrow="AASM 1A — AHI/RDI <5 — RERAs were scored"
+            reply="Ask your sleep physician whether the study showed ongoing restricted or flow-limited breathing that did not get counted as an event, and whether another cause of your symptoms needs evaluation. If your physician still strongly suspects OSA despite the negative study, AASM says a second in-lab sleep study may be considered. If another study is ordered, ask the clinician to specifically request AASM 1A scoring (3% oxygen drop OR arousal), plus RERA and RDI reporting."
             sources={[
               "aasm1a",
               "arousalRdi",
               "diagnosticRepeat",
               "respiratoryLegMovements",
             ]}
-            title="This result is below the usual OSA threshold."
+            title="This sleep study did not meet the usual criteria for OSA, even after including breathing events that can disrupt sleep without a large oxygen drop."
             tone="neutral"
           >
             <p>
-              The study used the current AASM recommended 1A scoring rule and both the
-              AHI and RDI remained &lt;5. The 1A rule counts qualifying hypopneas when
-              reduced airflow causes either a 3% oxygen drop or an arousal from sleep.
+              A RERA (respiratory effort-related arousal) is restricted breathing that
+              causes an arousal but does not qualify as an apnea or hypopnea. Your study
+              included these events.
             </p>
             <p>
-              A RERA is a period of restricted airflow or increasing breathing effort
-              that ends in an arousal but does not meet apnea or hypopnea criteria.
-              Because RERAs were scored, the RDI adds information about breathing
-              disturbances beyond the AHI alone.
+              That does not mean persistent symptoms should be dismissed. A single night
+              of testing may not always explain ongoing sleepiness, fatigue, unrefreshing
+              sleep, insomnia, or other symptoms.
             </p>
             <p>
-              Unexplained or “spontaneous” arousals do not prove that respiratory events
-              were missed. Periodic limb movements can be a separate source of sleep
-              disruption, although respiratory events can also trigger nearby leg
-              movements and the scoring rule used to separate them can change the
-              reported PLM index.
+              If your report also shows many “spontaneous” arousals or PLMs (periodic limb
+              movements—repetitive leg movements during sleep), ask whether those findings
+              could help explain your disrupted sleep or if they could be related to
+              flow-limited breathing. They do not prove that breathing events were missed,
+              but they may deserve closer review.
             </p>
           </AnswerCard>
         ) : null}
 
         {lowPsg && reraFinding === "positive" && rdiResult === "below5" && scoringRule === "4" ? (
           <AnswerCard
-            eyebrow="AASM 1B / 4% · AHI and RDI <5 · RERAs scored"
-            reply="Ask whether the existing PSG can be rescored using AASM recommended 1A criteria or whether a separate 1A AHI can be calculated from the recording. If the study remains negative and clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered. If another PSG is ordered, ask for AASM 1A hypopnea scoring and for RERAs and RDI to be scored and reported; confirm the request with the sleep lab."
+            eyebrow="AASM 1B / 4% — AHI/RDI <5 — RERAs were scored"
+            reply="Ask whether your existing sleep study can be rescored using AASM 1A criteria and whether a separate 1A AHI can be reported. If that is not possible, or the result remains negative despite strong clinical suspicion, AASM says a second in-lab sleep study may be considered. For a repeat study, ask the ordering clinician to specifically request AASM 1A scoring (3% oxygen drop OR arousal), plus RERA and RDI reporting."
             sources={[
               "aasm1a",
               "arousalRdi",
@@ -737,42 +740,32 @@ export default function Home() {
               "scoringImpact",
               "respiratoryLegMovements",
             ]}
-            title="This result does not rule out OSA using AASM 1A scoring."
+            title="This result does not rule out OSA, based on the current AASM-recommended 1A hypopnea or arousal scoring rule."
           >
             <p>
-              This study used the 4% rule, which requires a qualifying reduction in
-              airflow to cause at least a 4% oxygen drop before it is counted as a
-              hypopnea. AASM recommended 1A scoring can also count qualifying events
-              associated with a 3% oxygen drop or an arousal from sleep.
+              Your study used the 4% rule, which can miss breathing events that cause a
+              smaller oxygen drop or disrupt sleep through an arousal. AASM currently
+              recommends the broader 1A rule: 3% oxygen drop OR arousal.
             </p>
             <p>
-              RERAs were scored, which adds useful information to the RDI. A RERA is a
-              period of restricted airflow or increasing breathing effort that ends in
-              an arousal but does not meet apnea or hypopnea criteria.
+              Your study did include RERAs (respiratory effort-related
+              arousals)—restricted breathing that causes an arousal without meeting apnea
+              or hypopnea criteria. That adds useful information, but a 4%-based RDI is
+              not the same as having your AHI calculated using AASM 1A.
             </p>
             <p>
-              A 4%-based RDI that includes RERAs is not necessarily the same result as an
-              AHI calculated with AASM 1A. For example, a qualifying hypopnea associated
-              with a 3% oxygen drop but no arousal can count under 1A but would not meet
-              the 4% rule or qualify as a RERA.
-            </p>
-            <p>
-              Unexplained or “spontaneous” arousals do not prove that RERAs were missed.
-              Periodic limb movements can occur independently of breathing disturbances,
-              but respiratory events can also trigger nearby leg movements and different
-              scoring rules can change the reported PLM index.
+              If your report also shows many “spontaneous” arousals or PLMs (periodic limb
+              movements—repetitive leg movements during sleep), those findings do not
+              prove that breathing events were missed, but persistent unexplained sleep
+              disruption may justify a closer review.
             </p>
           </AnswerCard>
         ) : null}
 
         {lowPsg && reraFindingIsUnclear && usesAasm1A ? (
           <AnswerCard
-            eyebrow="AASM 1A · AHI <5 · RERA result unclear"
-            reply={
-              reraFinding === "zeroBlank"
-                ? "Ask the sleep lab whether RERAs were actively scored and whether the reported RDI includes apneas, hypopneas, and RERAs. Also ask whether the raw study showed persistent inspiratory flow limitation. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
-                : "Ask the sleep lab whether RERAs were scored and whether an RDI that includes apneas, hypopneas, and RERAs is available. Also ask whether the raw study showed persistent inspiratory flow limitation. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
-            }
+            eyebrow="AASM 1A — AHI/RDI <5 — RERAs are 0 or not reported"
+            reply="Ask: “Were RERAs actually scored, and what does my RDI include?” Also ask whether the study showed persistent restricted or flow-limited breathing. If your physician still suspects OSA despite the negative study, AASM says a second in-lab sleep study may be considered. If another study is ordered, ask the clinician to specifically request AASM 1A scoring (3% oxygen drop OR arousal), plus RERA and RDI reporting."
             sources={[
               "aasm1a",
               "arousalRdi",
@@ -780,54 +773,29 @@ export default function Home() {
               "diagnosticRepeat",
               "respiratoryLegMovements",
             ]}
-            title={
-              reraFinding === "zeroBlank"
-                ? "A zero or blank RERA result is not enough information."
-                : "RERA scoring cannot be confirmed from this report."
-            }
+            title="This study used the current AASM-recommended scoring rule, but the report does not clearly show whether RERAs were actually evaluated."
           >
             <p>
-              The result is below the usual OSA threshold using AASM recommended 1A
-              scoring, but the report does not clearly show whether RERAs were evaluated
-              and included in the RDI. The 1A rule already captures many breathing
-              disturbances that disrupt sleep because a qualifying hypopnea can be
-              counted with either a 3% oxygen drop or an arousal.
+              A RERA (respiratory effort-related arousal) is restricted breathing that
+              causes an arousal but does not qualify as an apnea or hypopnea.
             </p>
             <p>
-              A RERA is a period of restricted airflow or increasing breathing effort
-              that ends in an arousal but does not meet apnea or hypopnea criteria. These
-              events can be added to apneas and hypopneas when calculating the RDI.
+              A RERA value of 0 or a blank field does not necessarily tell you whether
+              the lab looked for RERAs and found none, or simply did not score them.
             </p>
-            {reraFinding === "zeroBlank" ? (
-              <p>
-                A RERA value of 0 or a blank field does not reveal whether the laboratory
-                carefully evaluated RERAs and found none or did not score them. AASM
-                scoring materials describe RERA scoring as optional, so the report should
-                be checked before assuming that 0 means none were found.
-              </p>
-            ) : (
-              <p>
-                Because no RERA line could be found, the report does not confirm whether
-                the laboratory scored RERAs or included them in an RDI.
-              </p>
-            )}
             <p>
-              Unexplained or “spontaneous” arousals do not establish that respiratory
-              events were missed. Periodic limb movements may be a separate source of
-              sleep disruption, although respiratory events can also trigger nearby leg
-              movements and the scoring rule used can affect the reported PLM index.
+              If your report shows many “spontaneous” arousals or PLMs (periodic limb
+              movements—repetitive leg movements during sleep), those findings do not
+              prove that breathing events were missed. But if your symptoms remain
+              unexplained, they may be worth reviewing alongside the breathing signals.
             </p>
           </AnswerCard>
         ) : null}
 
         {lowPsg && reraFindingIsUnclear && scoringRule === "4" ? (
           <AnswerCard
-            eyebrow="AASM 1B / 4% · AHI <5 · RERA result unclear"
-            reply={
-              reraFinding === "zeroBlank"
-                ? "First ask the sleep lab whether RERAs were actively scored and what the reported RDI includes. Then ask whether the PSG can be rescored using AASM recommended 1A criteria, with a separate 1A AHI reported. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
-                : "First ask the sleep lab whether RERAs were scored and whether a RERA-inclusive RDI is available. Then ask whether the PSG can be rescored using AASM recommended 1A criteria, with a separate 1A AHI reported. If clinical suspicion for OSA remains, discuss whether a second in-lab PSG should be considered."
-            }
+            eyebrow="AASM 1B / 4% — AHI/RDI <5 — RERAs are 0 or not reported"
+            reply="Ask: “Were RERAs actually scored?” Then ask whether the existing study can be rescored using AASM 1A criteria and whether a separate 1A AHI can be reported. If the study remains negative but your physician still strongly suspects OSA, AASM says a second in-lab sleep study may be considered. For a repeat study, ask the ordering clinician to specifically request AASM 1A scoring (3% oxygen drop OR arousal), plus RERA and RDI reporting."
             sources={[
               "aasm1a",
               "arousalRdi",
@@ -837,43 +805,26 @@ export default function Home() {
               "scoringImpact",
               "respiratoryLegMovements",
             ]}
-            title={
-              reraFinding === "zeroBlank"
-                ? "A zero or blank RERA result is not enough information."
-                : "RERA scoring cannot be confirmed from this report."
-            }
+            title="This result does not rule out OSA, based on the current AASM-recommended 1A scoring rule, and it is not clear whether RERAs were evaluated."
           >
             <p>
-              The study used the 4% hypopnea rule, and the report does not clearly show
-              whether RERAs were evaluated. AASM recommended 1A scoring can count
-              qualifying events associated with a 3% oxygen drop or an arousal, while
-              the 4% rule requires at least a 4% oxygen drop.
+              Your study used the 4% rule, which can miss breathing events that cause a
+              smaller oxygen drop or an arousal from sleep. AASM currently recommends 1A
+              scoring: 3% oxygen drop OR arousal.
             </p>
             <p>
-              A RERA is a period of restricted airflow or increasing breathing effort
-              that ends in an arousal but does not meet apnea or hypopnea criteria. RERAs
-              can be added to apneas and hypopneas when calculating the RDI.
+              A RERA (respiratory effort-related arousal) is restricted breathing that
+              causes an arousal but does not qualify as an apnea or hypopnea.
             </p>
-            {reraFinding === "zeroBlank" ? (
-              <p>
-                A RERA value of 0 or a blank field does not reveal whether the laboratory
-                carefully evaluated RERAs and found none or did not score them. This matters
-                especially under the 4% rule because respiratory events that cause an
-                arousal without a 4% oxygen drop will not qualify as 4% hypopneas.
-              </p>
-            ) : (
-              <p>
-                Because no RERA line could be found, the report does not confirm whether
-                the laboratory scored RERAs or included them in an RDI. This is especially
-                important when the AHI uses the 4% rule.
-              </p>
-            )}
             <p>
-              Unexplained or “spontaneous” arousals do not prove that respiratory events
-              were missed. Periodic limb movements may be a separate source of sleep
-              disruption, although respiratory events can also trigger nearby leg
-              movements and different scoring rules can substantially affect the
-              reported PLM count.
+              A RERA value of 0 or a blank field does not necessarily tell you whether
+              the lab looked for RERAs and found none, or simply did not score them.
+            </p>
+            <p>
+              If the report shows many “spontaneous” arousals or PLMs (periodic limb
+              movements—repetitive leg movements during sleep), that does not prove they
+              were caused by breathing. But when symptoms remain unexplained, it may be
+              reasonable to ask whether some occurred with restricted breathing.
             </p>
           </AnswerCard>
         ) : null}
