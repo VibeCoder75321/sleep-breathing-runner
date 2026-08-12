@@ -12,8 +12,10 @@ test("renders the updated sleep study checker", async () => {
   assert.match(html, /Sleep Study Check/i);
   assert.match(
     html,
-    /Check that the test conclusively rules out obstructive sleep breathing disorders/i,
+    /A “normal” sleep study does not always answer the whole question/i,
   );
+  assert.match(html, /two-minute checker helps you understand what your test measured/i);
+  assert.match(html, /American Academy of Sleep Medicine \(AASM\)/i);
   assert.doesNotMatch(html, /typically reports REI or AHI/i);
   assert.match(html, /American Academy of Sleep Medicine/i);
   assert.doesNotMatch(html, /exactly 5\.0 counts as 5 or higher/i);
