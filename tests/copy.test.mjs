@@ -3,6 +3,19 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+const layoutSource = await readFile(
+  new URL("../app/layout.tsx", import.meta.url),
+  "utf8",
+);
+
+test("uses the Sleep Study Check GitHub Pages address", () => {
+  assert.match(
+    layoutSource,
+    /https:\/\/vibecoder75321\.github\.io\/sleep-study-check/,
+  );
+  assert.doesNotMatch(layoutSource, /sleep-breathing-runner/);
+  assert.doesNotMatch(layoutSource, /chatgpt\.site/);
+});
 
 test("uses the approved short introductory copy", () => {
   assert.match(pageSource, /Patient Advocacy Tool/);

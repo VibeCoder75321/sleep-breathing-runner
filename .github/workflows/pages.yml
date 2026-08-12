@@ -1,4 +1,4 @@
-name: Deploy Patient Advocacy Tool to Pages
+name: Deploy Sleep Study Check to Pages
 
 on:
   push:

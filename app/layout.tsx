@@ -8,6 +8,7 @@ const basePath =
   process.env.GITHUB_ACTIONS === "true" && repositoryName
     ? `/${repositoryName}`
     : "";
+const siteUrl = "https://vibecoder75321.github.io/sleep-study-check";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,16 +23,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Sleep Study Check",
   description:
-    "Check whether a sleep study conclusively rules out sleep breathing disorders.",
+    "Check whether a sleep study conclusively rules out obstructive sleep breathing disorders based on current AASM clinical guidelines.",
   openGraph: {
     title: "Sleep Study Check",
     description:
-      "Check whether a sleep study conclusively rules out sleep breathing disorders.",
+      "Check whether a sleep study conclusively rules out obstructive sleep breathing disorders based on current AASM clinical guidelines.",
     type: "website",
-    url: "https://sleep-breathing-runner.workspace-066083.chatgpt.site/",
+    url: `${siteUrl}/`,
     images: [
       {
-        url: "https://sleep-breathing-runner.workspace-066083.chatgpt.site/og.png",
+        url: `${siteUrl}/og.png`,
         width: 1536,
         height: 1024,
         alt: "Sleep Study Check",
@@ -42,8 +43,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Sleep Study Check",
     description:
-      "Check whether a sleep study conclusively rules out sleep breathing disorders.",
-    images: ["https://sleep-breathing-runner.workspace-066083.chatgpt.site/og.png"],
+      "Check whether a sleep study conclusively rules out obstructive sleep breathing disorders based on current AASM clinical guidelines.",
+    images: [`${siteUrl}/og.png`],
   },
   icons: {
     icon: `${basePath}/favicon.svg`,
