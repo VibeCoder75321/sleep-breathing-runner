@@ -34,6 +34,6 @@ Live site: [vibecoder75321.github.io/sleep-study-check](https://vibecoder75321.g
 ## Analytics
 
 The Pages workflow reads the GA4 Measurement ID from the
-`GA_MEASUREMENT_ID` repository variable. Google Analytics loads only after a
-visitor opts in. The site uses GA4's automatic page, session, and engagement
-measurement and does not send questionnaire selections or health-related values.
+`GA_MEASUREMENT_ID` repository variable. The site uses GA4's automatic page,
+session, and engagement measurement and does not send questionnaire selections
+or health-related values.
