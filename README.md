@@ -1,4 +1,4 @@
-# Patient Advocacy Tool
+# Sleep Study Check
 
 Sleep Study Check is a static patient-advocacy guide for reviewing negative or
 low-index sleep study results. It walks through persistent symptoms, test type,
@@ -28,6 +28,8 @@ and rendered-HTML tests.
 
 The Next.js configuration creates a static export and automatically applies the
 repository base path when built by GitHub Actions.
+
+Live site: [vibecoder75321.github.io/sleep-study-check](https://vibecoder75321.github.io/sleep-study-check/)
 
 ## Analytics
 
