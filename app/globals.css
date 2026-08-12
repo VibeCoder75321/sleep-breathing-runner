@@ -182,6 +182,23 @@ summary:focus-visible {
   max-width: 700px;
 }
 
+.intro-note {
+  color: #405b63;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
+  margin: 18px 0 0;
+  max-width: 680px;
+}
+
+.intro-trust {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 680px;
+}
+
 .question-card,
 .answer {
   background: var(--card);
@@ -405,20 +422,20 @@ summary:focus-visible {
   padding: 16px 18px;
 }
 
-.next-step-summary span {
+.next-step-summary h3 {
   color: var(--teal-dark);
-  display: block;
-  font-size: 10px;
+  font-size: clamp(20px, 3vw, 23px);
   font-weight: 850;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .next-step-summary p {
   color: #334f57;
   font-size: 15px;
   line-height: 1.6;
-  margin: 6px 0 0;
+  margin: 10px 0 0;
 }
 
 .answer-actions {

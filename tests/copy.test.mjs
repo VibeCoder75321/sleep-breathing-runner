@@ -17,19 +17,21 @@ test("uses the Sleep Study Check GitHub Pages address", () => {
   assert.doesNotMatch(layoutSource, /chatgpt\.site/);
 });
 
-test("uses the approved short introductory copy", () => {
+test("explains why the checker is useful in plain language", () => {
   assert.match(pageSource, /Patient Advocacy Tool/);
   assert.match(pageSource, /My sleep study said/);
   assert.doesNotMatch(pageSource, /A sleep test said/);
   assert.doesNotMatch(pageSource, /Start with the report—not the summary/);
   assert.match(
     pageSource,
-    /Check that the test conclusively rules out obstructive sleep breathing\s+disorders, based on current American Academy of Sleep Medicine clinical\s+guidelines\./,
+    /A “normal” sleep study does not always answer the whole question\. This\s+two-minute checker helps you understand what your test measured, whether\s+important breathing events may have been missed, and what to ask your\s+clinician next\./,
   );
+  assert.match(pageSource, /Have your full report nearby/);
+  assert.match(pageSource, /American Academy of Sleep Medicine \(AASM\)/);
   assert.doesNotMatch(pageSource, /5 or higher/);
   assert.match(
     pageSource,
-    /This is an educational tool based on American Academy of Sleep Medicine\s+sleep-testing guidelines\. It does not diagnose OSA or UARS\./,
+    /This is an educational tool based on American Academy of Sleep Medicine\s+sleep-testing guidelines\. It does not diagnose obstructive sleep apnea \(OSA\)\s+or upper airway resistance syndrome \(UARS\)\./,
   );
 });
 
@@ -56,13 +58,21 @@ test("provides a pre-study path with an explicit AASM 1A order request", () => {
   assert.match(pageSource, /Ask your doctor to explicitly order an in-lab sleep study\./);
   assert.match(
     pageSource,
-    /Ask your doctor to explicitly order an in-lab PSG using AASM recommended 1A scoring \(3% oxygen drop OR arousal\), with RERAs and RDI scored and reported\./,
+    /Ask your doctor to explicitly order an in-lab sleep study \(polysomnography, or PSG\) using AASM recommended 1A scoring \(3% oxygen drop OR arousal\), with respiratory effort-related arousals \(RERAs\) scored and the respiratory disturbance index \(RDI\) reported\./,
   );
   assert.match(pageSource, /sources=\{\["ethics"\]\}/);
 });
 
-test("uses the current AHI or REI wording for the home-test pathway", () => {
-  assert.match(pageSource, /What was the AHI or REI\?/);
+test("expands medical acronyms and keeps the home-test pathway current", () => {
+  assert.match(pageSource, /Home sleep apnea test \(HSAT\)/);
+  assert.match(pageSource, /polysomnography \(PSG\)/);
+  assert.match(
+    pageSource,
+    /What was the apnea-hypopnea index \(AHI\) or respiratory event index \(REI\)\?/,
+  );
+  assert.match(pageSource, /RERA means respiratory effort-related arousal/);
+  assert.match(pageSource, /respiratory disturbance index \(RDI\)/);
+  assert.match(pageSource, /CMS means Centers for Medicare & Medicaid Services/);
   assert.doesNotMatch(pageSource, /What was the REI or AHI\?/);
   assert.doesNotMatch(
     pageSource,
@@ -77,7 +87,7 @@ test("uses the current AHI or REI wording for the home-test pathway", () => {
 test("standardizes AASM 1A wording and keeps next steps visible", () => {
   assert.match(pageSource, /AASM recommended 1A scoring criteria/);
   assert.doesNotMatch(pageSource, /AASM-recommended 3%-or-arousal rule/i);
-  assert.match(pageSource, /<span>Next step<\/span>/);
+  assert.match(pageSource, /<h3>What to do next<\/h3>/);
   assert.match(pageSource, /<p>\{reply\}<\/p>/);
   assert.doesNotMatch(pageSource, /Copy next step|navigator\.clipboard/);
   assert.match(
@@ -95,7 +105,10 @@ test("standardizes AASM 1A wording and keeps next steps visible", () => {
 });
 
 test("shows category-specific sources with short supporting excerpts", () => {
-  assert.match(pageSource, /AASM sources &amp; supporting studies/);
+  assert.match(
+    pageSource,
+    /American Academy of Sleep Medicine sources &amp; supporting studies/,
+  );
   assert.match(pageSource, /The Ethics of Hypopnea Scoring/);
   assert.match(pageSource, /Disparate hypopnea scoring undermines beneficent patient care/);
   assert.match(pageSource, /Respiratory Event Index Underestimates Sleep Apnea Severity/);
@@ -123,7 +136,7 @@ test("keeps AASM 1A separate from optional RERA scoring", () => {
   );
   assert.match(
     pageSource,
-    /A RERA value of 0 or a blank field does not necessarily tell you whether/,
+    /Using AASM 1A does not automatically mean RERAs were scored/,
   );
   assert.doesNotMatch(pageSource, /Esophageal pressure/i);
   assert.doesNotMatch(pageSource, /\bPes\b/);
@@ -133,7 +146,7 @@ test("asks the user to copy the visible RERA result before asking for RDI", () =
   assert.match(pageSource, /What do you see next to “RERA” on the report\?/);
   assert.match(
     pageSource,
-    /Look in the respiratory-events table\. Do not use the RDI number for this question\./,
+    /RERA means respiratory effort-related arousal—a period of restricted breathing that briefly disturbs sleep\. Look in the respiratory-events table\. Do not use the RDI number for this question\./,
   );
   assert.match(pageSource, /label="A number greater than 0"/);
   assert.doesNotMatch(pageSource, /For example, RERA 6 or RERA index 1\.2\./);
@@ -141,7 +154,10 @@ test("asks the user to copy the visible RERA result before asking for RDI", () =
   assert.doesNotMatch(pageSource, /Choose this even if the RDI is the same as the AHI\./);
   assert.match(pageSource, /label="I can’t find “RERA”"/);
   assert.doesNotMatch(pageSource, /The report may not include a RERA line\./);
-  assert.match(pageSource, /Now find the RDI\. What number is shown\?/);
+  assert.match(
+    pageSource,
+    /Now find the respiratory disturbance index \(RDI\)\. What number is shown\?/,
+  );
   assert.match(pageSource, /label="Not listed \/ I can’t find it"/);
   assert.match(pageSource, /reraFinding === "positive" \? \(/);
   assert.doesNotMatch(pageSource, /label="RDI <5 and RERAs were scored"/);
@@ -157,10 +173,18 @@ test("asks the user to copy the visible RERA result before asking for RDI", () =
 test("keeps distinct 3% and 4% results after the simplified RERA step", () => {
   assert.match(pageSource, /AASM 1A — AHI\/RDI <5 — RERAs were scored/);
   assert.match(pageSource, /AASM 1B \/ 4% — AHI\/RDI <5 — RERAs were scored/);
-  assert.match(pageSource, /AASM 1A — AHI\/RDI <5 — RERAs are 0 or not reported/);
-  assert.match(pageSource, /AASM 1B \/ 4% — AHI\/RDI <5 — RERAs are 0 or not reported/);
+  assert.match(pageSource, /AASM 1A AHI below 5 — RERA scoring unclear/);
+  assert.match(pageSource, /4% AHI below 5 — RERA scoring unclear/);
   assert.match(pageSource, /This sleep study did not meet the usual criteria for OSA/);
-  assert.match(pageSource, /the report does not clearly show whether RERAs were actually evaluated/);
+  assert.match(
+    pageSource,
+    /The recommended AHI rule was used, but the report does not show whether subtler breathing events were also counted\./,
+  );
+  assert.match(
+    pageSource,
+    /This result does not conclusively rule out obstructive sleep apnea\./,
+  );
+  assert.doesNotMatch(pageSource, /AHI\/RDI <5 — RERAs are 0 or not reported/);
   assert.match(
     pageSource,
     /reraFinding === "positive" && rdiResult === "below5" && usesAasm1A/,
@@ -169,7 +193,7 @@ test("keeps distinct 3% and 4% results after the simplified RERA step", () => {
     pageSource,
     /reraFinding === "positive" && rdiResult === "below5" && scoringRule === "4"/,
   );
-  assert.match(pageSource, /persistent restricted or flow-limited breathing/);
+  assert.match(pageSource, /ongoing restricted or flow-limited breathing/);
   assert.match(pageSource, /respiratoryLegMovements/);
   assert.match(pageSource, /reraScoring/);
   assert.doesNotMatch(pageSource, /A 4%-only AHI <5 does not rule out OSA/);
