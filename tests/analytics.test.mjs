@@ -15,12 +15,13 @@ const workflowSource = await readFile(
   "utf8",
 );
 
-test("loads GA4 only after explicit analytics consent", () => {
-  assert.match(analyticsSource, /consent === "granted"/);
-  assert.match(analyticsSource, /Allow analytics/);
-  assert.match(analyticsSource, /No thanks/);
-  assert.match(analyticsSource, /analytics_storage: choice/);
+test("loads GA4 automatically without an opt-in dialog", () => {
+  assert.match(analyticsSource, /google-analytics-library/);
+  assert.match(analyticsSource, /analytics_storage: 'granted'/);
   assert.match(analyticsSource, /ad_storage: 'denied'/);
+  assert.doesNotMatch(analyticsSource, /Allow analytics/);
+  assert.doesNotMatch(analyticsSource, /No thanks/);
+  assert.doesNotMatch(analyticsSource, /localStorage/);
 });
 
 test("uses automatic measurement without sending health-answer events", () => {
